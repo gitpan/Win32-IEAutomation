@@ -6,8 +6,8 @@ use Win32::OLE qw(EVENTS);
 use Win32::IEAutomation::Element;
 use Win32::IEAutomation::WinClicker;
 
-use vars qw($VERSION);
-$VERSION = '0.1';
+use vars qw($VERSION $warn);
+$VERSION = '0.2';
 
 sub new {
 	my $class = shift;
@@ -21,6 +21,10 @@ sub new {
 	}
 	if (exists $options{maximize}){
 		$maximize = $options{maximize};
+	}
+	
+	if (exists $options{warnings}){
+		$warn = $options{warnings};
 	}
 	
 	$self->_startIE($visible, $maximize);
@@ -93,24 +97,40 @@ sub Title{
 sub Content{
 	my $self = shift;
 	my $agent = $self->{agent};
-	$agent->document->documentElement->{outerHTML};
+	my $html = $agent->document->documentElement->{outerHTML};
+	$html =~ s/\r//g;
+	my @file = split (/\n/, $html);
+	if (wantarray){
+		return @file;
+	}else{
+		return $html;
+	}
 }
 
 sub VerifyText{
 	my ($self, $string) = @_;
-	my $assertflag = 0;
-	my $agent = $self->{agent};
-	my $doc = $agent->Document->all;
-	for (my $n = 0; $n <= $doc->length - 1; $n++){
-		my $text = $doc->item($n)->getAdjacentText("beforeEnd");
-		$text = trim_white_spaces($text);
-		if ($text eq $string || $text =~ m/$string/){
-			$assertflag = 1;
-			return $assertflag;
+	my @text = $self->PageText;
+	foreach my $line (@text){
+		$line =~ s/^\s+//;
+		$line =~ s/\s+$//;
+		if ($line eq $string || $line =~ m/$string/){
+			return 1;
 		}
 	}
 }
-		
+
+sub PageText{
+	my $self = shift;
+	my $text = $self->getAgent->document->documentElement->outerText;
+	$text =~ s/\r//g;
+	my @file = split (/\n/, $text);
+	if (wantarray){
+		return @file;
+	}else{
+		return $text;
+	}
+}
+	
 sub getLink{
 	my ($self, $how, $what) = @_;
 	my $agent = $self->{agent};
@@ -123,7 +143,7 @@ sub getLink{
 		$link_object->{parent} = $self;
 	}else{
 		$link_object = undef;
-		print "WARNING: No link is  present in the document with your specified option $how $what\n";
+		print "WARNING: No link is  present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $link_object;
 }
@@ -154,7 +174,7 @@ sub getButton{
 		$button_object->{parent} = $self;
 	}else{
 		$button_object = undef;
-		print "WARNING: No button is  present in the document with your specified option $how $what\n";
+		print "WARNING: No button is  present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $button_object;
 }
@@ -171,7 +191,7 @@ sub getImage{
 		$image_object->{parent} = $self;
 	}else{
 		$image_object = undef;
-		print "WARNING: No image is  present in the document with your specified option $how $what\n";
+		print "WARNING: No image is  present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $image_object;
 }
@@ -207,7 +227,7 @@ sub getRadio{
 		$radio_object->{parent} = $self;
 	}else{
 		$radio_object = undef;
-		print "WARNING: No radio button is  present in the document with your specified option $how $what\n";
+		print "WARNING: No radio button is  present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $radio_object;
 }
@@ -229,7 +249,7 @@ sub getCheckbox{
 		$checkbox_object->{parent} = $self;
 	}else{
 		$checkbox_object = undef;
-		print "WARNING: No checkbox is  present in the document with your specified option $how $what\n";
+		print "WARNING: No checkbox is  present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $checkbox_object;
 }
@@ -247,7 +267,7 @@ sub getSelectList{
 		$list_object->{parent} = $self;
 	}else{
 		$list_object = undef;
-		print "WARNING: No select list is  present in the document with your specified option $how $what\n";
+		print "WARNING: No select list is  present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $list_object;
 }
@@ -272,7 +292,7 @@ sub getTextBox{
 		$text_object->{parent} = $self;
 	}else{
 		$text_object = undef;
-		print "WARNING: No text box is present in the document with your specified option $how $what\n";
+		print "WARNING: No text box is present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $text_object;
 }
@@ -296,7 +316,7 @@ sub getTextArea{
 		$text_object->{parent} = $self;
 	}else{
 		$text_object = undef;
-		print "WARNING: No text area is present in the document with your specified option $how $what\n";
+		print "WARNING: No text area is present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $text_object;
 }
@@ -461,7 +481,7 @@ sub getFrame{
 		bless $frameref;
 		return $frameref;
 	}else{
-		print "WARNING: No frame is present in the document with your specified option $how $what\n";
+		print "WARNING: No frame is present in the document with your specified option $how $what\n" if $warn;
 	}
 }
 
@@ -487,7 +507,7 @@ sub getPopupWindow{
 		sleep 1;
 		$counter++
 	}
-	print "WARNING: No popup window is present with your specified title: $what\n";
+	print "WARNING: No popup window is present with your specified title: $what\n" if $warn;
 }	
 
 sub WaitforDone{
@@ -582,7 +602,7 @@ Additionally it provides methods to interact with security alert dialog, conform
 
 This module tries to give web application automation using internet explorer on windows platform. It internally uses Win32::OLE to create automation object for IE.
 It drives internet explorer using its DOM properties and methods. The module allows user to interact with web page controls like links, buttons, radios, checkbox, text fields etc.
-It also supports frames, popup window and interaction with dialogs like security alert, confirmation dialog etc.
+It also supports frames, popup window and interaction with javascript dialogs like security alert, confirmation, warning dialog etc.
 
 =head1 METHODS
 
@@ -590,20 +610,24 @@ It also supports frames, popup window and interaction with dialogs like security
 
 =over 4
 
-=item * Win32::IEAutomation->new( [visible => 1, maximize => 1] )
+=item * Win32::IEAutomation->new( visible => 1, maximize => 1, warnings => 1 )
 
 This is the constructor for new Internet Explorer instance through Win32::OLE. Calling this function will create
-a perl object which internally contains a automation object for internet explorer. Two options are supported to this method in hash format.
-Both of these are optional.
+a perl object which internally contains a automation object for internet explorer. Three options are supported to this method in hash format.
+All of these are optional.
 
-=item visible
+visible
 
 It sets the visibility of Internet Explorer window. The default value is 1, means by default it will be visible if you don't provide this option.
 You can set it to 0 to run it in invisible mode.
 
-=item maximize
+maximize
 
 Default value of this is 0, means it runs IE in the size of last run. Setting this to 1 will maximize the window.
+
+warnings
+
+Default value of this is 0. If you want to print warning messages for any object not found, then set it to 1. This is optional.
 
 =item * gotoURL($url, [$nowait])
 
@@ -632,14 +656,20 @@ This will return title of the current document
 
 =item * Content()
 
-This will return the HTML of the current document. Please note that all the tags are upper cased.
-The return value is of scalar type.
+This will return the HTML of the current document. In scalar context return a single string (with \n characters) and in list context returns array.
+Please note that all the tags are UPPER CASED.
 
 =item * VerifyText($string)
 
-Verifies that given string is present in the current document. It returns 1 on success and undefined on failure.
+Verifies that given string is present in the current document text. It returns 1 on success and undefined on failure.
 
-=item * WaitforDone($string)
+=item * PageText()
+
+It returns the text in the current page. (no html tags). In scalar context return a single sting (with \n characters) and in list context returns array.
+
+It will assist for using VerifyText method. User can print the returned array to some file and see what string he/she can pass as an argument to the VerifyText method.
+
+=item * WaitforDone()
 
 Waits till IE had came out of busy state and document is loaded completly.
 This will poll IE for every one second and check its busy state and document complete state, before we move on.
@@ -669,9 +699,13 @@ $what : This is string or integer, what you are looking for. For this, it also s
 Valid options to use for $how:
 
 'linktext:'	- Find the link by matching the link text i.e. the text that is displayed to the user
+
 'id:'			- Find the link by matching id attribute
+
 'name:'		- Find the link by matching name attribute
+
 'linkurl:'		- Find the link by matching url attribute of the link
+
 'class:'		- Find the link by matching class attribute
 
 Typical Usage:
@@ -726,9 +760,13 @@ $what : This is string or integer, what you are looking for. For this, it also s
 Valid options to use for $how:
 
 'id:'			- Find the image by matching id attribute
+
 'name:'		- Find the image by matching name attribute
+
 'imgurl:'	- Find the image by matching src attribute of the image
+
 'alt:'			- Find the image by matching alt attribute of the image
+
 'class:'		- Find the image by matching class attribute
 
 Typical Usage:
@@ -778,9 +816,13 @@ $what : This is string or integer, what you are looking for. For this, it also s
 Valid options to use for $how:
 
 'id:'			- Find the button by matching id attribute
+
 'name:'		- Find the button by matching name attribute
+
 'value:'		- Find the button by matching value attribute
+
 'caption:'	- Find the button by matching text shown on button
+
 'class:'		- Find the button by matching class attribute
 
 	If there are more than one button having same value for the option you are quering, then it returns first button of the collection.
@@ -824,11 +866,17 @@ $what : This is string or integer, what you are looking for. For this, it also s
 Valid options to use for $how:
 
 'id:'				- Find the radio or checkbox by matching id attribute
+
 'name:'			- Find the radio or checkbox by matching name attribute
+
 'value:'			- Find the radio or checkbox by matching value attribute
+
 'class:'			- Find the radio or checkbox by matching class attribute
+
 'index:'			- Find the radio or checkbox using the index in the total collection of the radio or checkbox. (see example below)
+
 'beforetext:'	- Find the radio or checkbox before the specified text.
+
 'aftertext:'		- Find the radio or checkbox after the specified text.
 
 	If there are more than one object having same value for the option you are quering, then it returns first object of the collection.
@@ -875,10 +923,15 @@ $what : This is string or integer, what you are looking for. For this, it also s
 Valid options to use for $how:
 
 'id:'				- Find the select list by matching id attribute
+
 'name:'			- Find the select list by matching name attribute
+
 'class:'			- Find the select list by matching class attribute
+
 'index:'			- Find the select list using the index in the total collection of the select lists. (see example below)
+
 'beforetext:'	- Find the select list before the specified text.
+
 'aftertext:'		- Find the select list after the specified text.
 
 	If there are more than one object having same value for the option you are quering, then it returns first object of the collection.
@@ -940,11 +993,17 @@ $what : This is string or integer, what you are looking for. For this, it also s
 Valid options to use for $how:
 
 'id:'				- Find the text field by matching id attribute
+
 'name:'			- Find the text field by matching name attribute
+
 'value:'			- Find the text field by matching value attribute
+
 'class:'			- Find the text field by matching class attribute
+
 'index:'			- Find the text field using the index in the total collection of the text fields. (see example below)
+
 'beforetext:'	- Find the text field before the specified text.
+
 'aftertext:'		- Find the text field after the specified text.
 
 	If there are more than one object having same value for the option you are quering, then it returns first object of the collection.
@@ -991,8 +1050,11 @@ $what : This is string or integer, what you are looking for. For this, it also s
 Valid options to use for $how:
 
 'id:'				- Find the frame by matching id attribute
+
 'name:'			- Find the frame by matching name attribute
+
 'value:'			- Find the frame by matching value attribute
+
 'class:'			- Find the frame by matching class attribute
 
 Typical Usage:
@@ -1011,7 +1073,7 @@ There might be case of frame inside frame (nested farmes), so use getFrame metho
 =item B<Methods supported for frame object>
 
 All methods listed under GENERIC METHODS, LINK METHODS, IMAGE METHODS, BUTTON METHODS, RADIO and CHECKBOX METHODS, SELECT LIST METHODS, 
-TEXTBOX and TEXTAREA METHODS are supported.
+TEXTBOX and TEXTAREA METHODS, FRAME METHODare supported.
 
 =back
 
@@ -1040,10 +1102,10 @@ There might be case where popup takes time to load its document, so you can use 
 	my $popup = $ie->getPopupWindow("Popup One") # access the popup window
 	$popup->WaitforDone; # wait so that popup will load its document completly
 
-=item B<Methods supported for frame object>
+=item B<Methods supported for popup object>
 
 All methods listed under GENERIC METHODS, LINK METHODS, IMAGE METHODS, BUTTON METHODS, RADIO and CHECKBOX METHODS, SELECT LIST METHODS, 
-TEXTBOX and TEXTAREA METHODS are supported.
+TEXTBOX and TEXTAREA METHODS, FRAME METHOD are supported.
 
 =back
 
@@ -1056,9 +1118,11 @@ You need to create a new instance of Win32::IEAutomation::WinClicker and then us
 
 =over 4
 
-=item * Win32::IEAutomation::WinClicker->new()
+=item * Win32::IEAutomation::WinClicker->new( warnings => 1)
 
-This will create a new instance of WinClicker class.
+warnings
+
+Default value of this is 0. If you want to print warning messages for any object not found, then set it to 1. This is optional.
 
 =item * push_security_alert_yes($wait_time)
 
@@ -1077,6 +1141,15 @@ Typical Usage:
     my $clicker = Win32::IEAutomation::WinClicker->new();
     $clicker->push_security_alert_yes();
     $ie->WaitforDone; # we will wait here for complete loading of navigated site
+
+=item * push_button_yes($title, $wait_time)
+
+It will push 'Yes' button of window which is having provided title.
+
+$title: Provide exact title of dialog box
+
+$wait_time: Provide wait time so that it will wait for confirmation dialog box to appear.
+Default value of wait time is 5 seconds (if wait time is not provided). It will timeout after wait time, and execute next line of code.
 
 =item * push_confirm_button_ok($title, $wait_time)
 
@@ -1120,7 +1193,7 @@ Typical Usage:
 	$ie->getLink('linktext:', "Login")->Click(1); # providing no wait argument says that don't wait for complete document loading and allow code to go to next line.
 	
 	my $clicker = Win32::IEAutomation::WinClicker->new();
-	$clicker->logon("Enter Network Password", $user, $password, $wait_time);
+	$clicker->logon("Enter Network Password", $user, $password, $wait_time); # here 'Enter Network Password' is the title of log on window
 	$ie->WaitforDone; # we will wait here for complete loading document
 
 =back

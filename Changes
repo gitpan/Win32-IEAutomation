@@ -1,6 +1,12 @@
 Revision history for Perl extension Win32::IEAutomation.
 
-0.01  Thu Jan  5 12:41:00 2006
+0.1  Thu Jan 5 12:41:00 2006
 	- original version; created by h2xs 1.23 with options
 		-AXc -n Win32::IEAutomation
+		
+0.2 Tue Jan 17 17:10:00 2006
+	- Fixed bug in SelectItem method of select list
+	- Updated VerifyText method
+	- Added PageText method
+	- Added push_button_yes method in WinClicker class
 

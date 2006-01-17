@@ -1,9 +1,14 @@
 package Win32::IEAutomation::WinClicker;
 
 use strict;
+use vars qw($warn);
 
 sub new {
 	my $class = shift;
+	my %options = @_;
+	if (exists $options{warnings}){
+		$warn = $options{warnings};
+	}
 	my $self  = { };
 	$self->{autoit} = Win32::OLE->new("AutoItX3.Control");
 	unless ($self->{autoit}){
@@ -42,7 +47,7 @@ sub push_security_alert_yes{
 		$self->{autoit}->WinActivate("Security Alert");
 		$self->{autoit}->Send('!y');
 	}else{
-		print "WARNING: No Security Alert dialog is present. Function push_security_alert_yes is timed out.\n";
+		print "WARNING: No Security Alert dialog is present. Function push_security_alert_yes is timed out.\n" if $warn;
 	}
 }
 
@@ -53,6 +58,18 @@ sub push_confirm_button_ok{
 	if ($window){
 		$self->{autoit}->WinActivate($title);
 		$self->{autoit}->Send('{ENTER}');
+	}
+}
+
+sub push_button_yes{
+	my ($self, $title, $wait) = @_;
+	$wait = 5 unless $wait;
+	my $window = $self->{autoit}->WinWait($title, "", $wait);
+	if ($window){
+		$self->{autoit}->WinActivate($title);
+		$self->{autoit}->Send('!y');
+	}else{
+		print "WARNING: No dialog is present with title: $title. Function push_button_yes is timed out.\n" if $warn;
 	}
 }
 
@@ -77,7 +94,7 @@ sub logon{
 		$self->{autoit}->Send($password);
 		$self->{autoit}->Send('{ENTER}');
 	}else{
-		print "WARNING: No logon dialog is present with title \'$title\'. Function logon is timed out.\n";
+		print "WARNING: No logon dialog is present with title \'$title\'. Function logon is timed out.\n" if $warn;
 	}
 }
 

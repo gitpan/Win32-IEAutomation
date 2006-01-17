@@ -17,7 +17,8 @@ sub getElement {
 }
 
 sub getProperty{
-	my ($self, $property) = shift;
+	my ($self, $property) = @_;
+	print "$property\n";
 	return $self->{element}->{$property};
 }
 
@@ -68,19 +69,26 @@ sub deSelect{
 sub SelectItem{
 	my $self = shift;
 	my @items = @_;
+	my $item_present_flag;
 	foreach my $item (@items){
+		$item_present_flag = 0;
 		my $options = $self->{element}->options;
 		for (my $n =0; $n <= $options->length - 1; $n++){
 			my $text = $options->item($n)->innerText;
 			$text = trim_white_spaces($text);
 			if ($text eq $item){
-				$options->item($n)->{selected} = 1;
-				$self->{element}->fireEvent("onchange");
-				$self->WaitforDone;
-				last;
+				$item_present_flag = 1;
+				unless ($options->item($n)->selected){
+					$options->item($n)->{selected} = 1;
+					$self->{element}->fireEvent("onchange");
+					$self->{parent}->WaitforDone;
+					last;
+				}
 			}
 		}
+		print "WARNING: Your provided item \'$item\' is not present in the select list.\n" if ($item_present_flag == 0);
 	}
+	return $item_present_flag;
 }
 
 sub deSelectItem{
@@ -94,7 +102,7 @@ sub deSelectItem{
 			if ($text eq $item){
 				$options->item($n)->{selected} = 0 if $options->item($n)->selected;
 				$self->{element}->fireEvent("onchange");
-				$self->WaitforDone;
+				$self->{parent}->WaitforDone;
 				last;
 			}
 		}
@@ -108,7 +116,7 @@ sub deSelectAll{
 		for (my $n =0; $n <= $options->length - 1; $n++){
 				$options->item($n)->{selected} = 0 if $options->item($n)->selected;
 				$self->{element}->fireEvent("onchange");
-				$self->WaitforDone;
+				$self->{parent}->WaitforDone;
 		}
 }
 
@@ -120,6 +128,13 @@ sub SetValue{
 sub ClearValue{
 	my $self = shift;
 	$self->{element}->{value} = "";
+}
+
+sub trim_white_spaces{
+	my $string = shift;
+	$string =~ s/^\s+//;
+	$string =~ s/\s+$//;
+	return $string;
 }
 
 1;
