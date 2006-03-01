@@ -5,8 +5,8 @@ use strict;
 sub new {
 	my $class = shift;
 	my $self  = { };
-	$self->{element}   = undef;
-	$self->{parent}    = undef;
+	$self->{element} = undef;
+	$self->{parent} = undef;
 	$self = bless ($self, $class);
 	return $self;
 }
@@ -125,6 +125,11 @@ sub SetValue{
 	$self->{element}->{value} = $string;
 }
 
+sub GetValue{
+	my $self = shift;
+	return $self->{element}->{value};
+}
+
 sub ClearValue{
 	my $self = shift;
 	$self->{element}->{value} = "";
@@ -136,6 +141,6 @@ sub trim_white_spaces{
 	$string =~ s/\s+$//;
 	return $string;
 }
-
+	 
 1;
 __END__ 

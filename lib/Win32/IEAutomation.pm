@@ -4,6 +4,7 @@ use strict;
 use Win32::OLE qw(EVENTS);
 
 use Win32::IEAutomation::Element;
+use Win32::IEAutomation::Table;
 use Win32::IEAutomation::WinClicker;
 
 use vars qw($VERSION $warn);
@@ -34,6 +35,7 @@ sub _startIE{
 	my ($self, $visible, $maximize) = @_;
 	defined $self->{agent} and return;
 	$self->{agent} = Win32::OLE->new("InternetExplorer.Application") || die "Could not start Internet Explorer Application through OLE\n";
+	Win32::OLE->Option(Warn => 0);
 	Win32::OLE->WithEvents($self->{agent});
 	$self->{agent}->{Visible} = $visible;
 	if ($maximize){
@@ -107,16 +109,23 @@ sub Content{
 	}
 }
 
+# sub VerifyText{
+# 	my ($self, $string) = @_;
+# 	my @text = $self->PageText;
+# 	foreach my $line (@text){
+# 		$line =~ s/^\s+//;
+# 		$line =~ s/\s+$//;
+# 		if ($line eq $string || $line =~ m/$string/){
+# 			return 1;
+# 		}
+# 	}
+# }
+
 sub VerifyText{
-	my ($self, $string) = @_;
-	my @text = $self->PageText;
-	foreach my $line (@text){
-		$line =~ s/^\s+//;
-		$line =~ s/\s+$//;
-		if ($line eq $string || $line =~ m/$string/){
-			return 1;
-		}
-	}
+	my ($self, $string, $flag) = @_;
+	$flag = 0 unless $flag;
+	my $textrange = $self->{agent}->document->body->createTextRange;
+	return $textrange->findText($string, 0 , $flag);
 }
 
 sub PageText{
@@ -258,8 +267,7 @@ sub getSelectList{
 	my ($self, $how, $what) = @_;
 	my $agent = $self->{agent};
 	my $select_lists = $agent->Document->all->tags("select");
-	my $target_list = __getObject($select_lists, $how, $what, "select-one") if ($select_lists);
-	$target_list = __getObject($select_lists, $how, $what, "select-multiple") unless $target_list;
+	my $target_list = __getObject($select_lists, $how, $what, "select-one|select-multiple") if ($select_lists);
 	my $list_object;
 	if ($target_list){
 		$list_object = Win32::IEAutomation::Element->new();
@@ -282,8 +290,7 @@ sub getTextBox{
 		$inputs = $agent->Document->all->tags("input");
 	}
 	if ($inputs){
-		$target_field = __getObject($inputs, $how, $what, "text");
-		$target_field = __getObject($inputs, $how, $what, "password") unless $target_field;
+		$target_field = __getObject($inputs, $how, $what, "text|password");
 	}
 	my $text_object;
 	if ($target_field){
@@ -319,6 +326,44 @@ sub getTextArea{
 		print "WARNING: No text area is present in the document with your specified option $how $what\n" if $warn;
 	}
 	return $text_object;
+}
+
+sub getTable{
+	my ($self, $how, $what) = @_;
+	my $agent = $self->{agent};
+	my ($inputs, $target_table);
+	if ($how eq "beforetext:" || $how eq "aftertext:"){
+		$inputs = $agent->Document->all;
+	}else{
+		$inputs = $agent->Document->all->tags("table");
+	}
+	if ($inputs){
+		$target_table = __getObject($inputs, $how, $what);
+	}
+	my $table_object;
+	if ($target_table){
+		$table_object = Win32::IEAutomation::Table->new();
+		$table_object->{table} = $target_table;
+		$table_object->{parent} = $self;
+	}else{
+		$table_object = undef;
+		print "WARNING: No table is present in the document with your specified option $how $what\n" if $warn;
+	}
+	return $table_object;
+}
+
+sub getAllTables{
+	my $self = shift;
+	my $agent = $self->{agent};
+	my @links_array;
+	my $links = $agent->Document->all->tags("table");
+	for (my $n = 0; $n < $links->length; $n++){
+		my $link_object = Win32::IEAutomation::Element->new();
+		$link_object->{element} = $links->item($n);
+		$link_object->{parent} = $self;
+		push (@links_array, $link_object);
+	}
+	return @links_array;
 }
 	
 sub __getObject{
@@ -380,7 +425,7 @@ sub __getObject{
 			}
 			
 			elsif ($how eq "index:") {
-				$index_counter++ if ($coll->item($n)->type eq $type);
+				$index_counter++ if ($coll->item($n)->type =~ m/^($type)$/);
 				return $coll->item($n) if ($index_counter == $what);
 			}
 			
@@ -440,7 +485,7 @@ sub __getObject{
 			
 			elsif ($how eq "aftertext:") {
 				undef $input;
-				$input =  $coll->item($n) if (($coll->item($n)->tagName eq "INPUT" || $coll->item($n)->tagName eq "TEXTAREA") && $coll->item($n)->type eq $type);
+				$input =  $coll->item($n) if (($coll->item($n)->tagName =~ m/^(INPUT|TEXTAREA)$/) && $coll->item($n)->type =~ m/^($type)$/);
 				#print $coll->item($n)->{type}."\n" if ($aftertext_flag == 1 && $input);
 				return $input if ($aftertext_flag == 1 && $input);
 				unless ($aftertext_flag){
@@ -659,9 +704,15 @@ This will return title of the current document
 This will return the HTML of the current document. In scalar context return a single string (with \n characters) and in list context returns array.
 Please note that all the tags are UPPER CASED.
 
-=item * VerifyText($string)
+=item * VerifyText($string, [iflags])
 
 Verifies that given string is present in the current document text. It returns 1 on success and undefined on failure.
+Second  parameter iflags is optional. It is integer value that specifies one or more of the following flags to indicate the type of search.
+
+	0	Default. Match partial words.
+	1	Match backwards.
+	2	Match whole words only.
+	4	Match case.
 
 =item * PageText()
 
@@ -1022,6 +1073,12 @@ It will set the value of text field or text area to the string provided.
 
 	$ie->getTextBox('name:', "q")->SetValue("web automation") # it will enter text 'web automation' in the input text filed.
 
+=item GetValue()
+
+It will return the default text present in the textbox or text area.
+
+	$ie->getTextBox('name:', "q")->GetValue() # return the default text present in the textbox
+
 =item ClearValue()
 
 It will clear the text field.
@@ -1031,6 +1088,99 @@ It will clear the text field.
 =item getProperty($property)
 
 Retrieves the value of the given property for text field object. This makes easy to get value of any property that is supported by html input text field.
+
+=back
+
+=head2 TABLE METHOD
+
+=over4
+
+=item * getTable($how, $what)
+
+This is the method to access table on web page. It returns Win32::IEAutomation::Table object containing html table.
+
+$how : This is the option how you want to access the link
+
+$what : This is string or integer, what you are looking for. For this, it also supports pattern matching using 'qr' operator of perl (see example below)
+
+Valid options to use for $how:
+
+'id:'				- Find the table by matching id attribute
+
+'name:'			- Find the table by matching name attribute
+
+'value:'			- Find the table by matching value attribute
+
+'class:'			- Find the table by matching class attribute
+
+If there are more than one object having same value for the option you are quering, then it returns first object of the collection.
+
+Typical Usage:
+	$ie->getTable("id:", "1a");		# access the table whose id attribute is '1a'
+	$ie->getTable("class:", "data")	# access the table whose class attribute is 'data'
+
+=item * getAllTables()
+
+This will return array containing all table on that page. Each element of an array will be a Win32::IEAutomation::Table object.
+
+Typical Usage:
+	my @alltables = $ie->getAllTables;
+
+=item B<Methods supported for table object>
+
+=item rows([index of row])
+
+This method returns the row object/objects from the table. It takes an optional argument, the index number of the row you wish to take.
+If this method is used without any argument then it returns array of row objects in the table.  And if you provide an argument,
+then it returns a scalar row object present at specified index. The rows are counted inclusing header row.
+
+Typical Usage:
+	my @all_rows = $table_object->rows;  # get collection of all row objects in the table
+	my $third_row = $table_objects->rows(3) # get third row of the table.
+
+=item getRowHavingText($string);
+
+This method returns a single row object that contains specifed text. If the text string is present in any of the row of the table, then that row
+objetc is returned. This method supports perl pattern matching using 'qr' operator.
+
+Typical Usage:
+	my $target_row = $table_object->getRowHavingText("Last Name:"); # access the row which contains text "Last Name:". It will try to match eaxact string.
+	my $target_row = $table_object->getRowHavingText(qr/First Name:/); # access the row by pattern matching text "First Name:"
+
+=item tableCells([$row, $column])
+
+This method returns an array of all cell objects present in the table. Each element of the array will be a cell object. Please see below for methods on cell object.
+Additionaly it also supports two optional parameters, first parameter is index of the row and second is index of column. When these two parameters are used,
+it returns a scalar cell object using combination of row and column index.
+
+Typical Usage:
+	my @allcells = $table_object->tableCells; # get all cell objects in an array
+	my $target_cell = $table_object->tableCells(2, 5); # get cell at second row and fifth column
+
+=item B<Methods supported for row object>
+
+=item cells([index of cell])
+
+This methos returns an array of cell objects present in that cell. Each elemnt of an array will be a cell object.
+Additionaly it supports one optional parameter, cell index.
+If this method is used without any argument then it returns array of cell objects in that row.  And if you provide an argument,
+then it returns a scalar cell object present at specified index.
+
+Typical Usage:
+	my @all_cells = $row_object->cells;  # get collection of all cell objects in that row
+	my $third_cell = $table_objects->cells(3) # get third cell of that row.
+
+=item B<Methods supported for cell object>
+
+=item cellText
+
+It returns a text present in that cell.
+
+Typical Usage:
+	$text = $cell_object->cellText;	# access the text present in that cell.
+
+In addition to this, all methods listed under LINK METHODS, IMAGE METHODS, BUTTON METHODS, RADIO and CHECKBOX METHODS, SELECT LIST METHODS, 
+TEXTBOX and TEXTAREA METHODS are supported on cell object.
 
 =back
 

@@ -10,3 +10,10 @@ Revision history for Perl extension Win32::IEAutomation.
 	- Added PageText method
 	- Added push_button_yes method in WinClicker class
 
+0.3 Wed Mar 01 15:30:00 2006
+	- Added Table.pm to support html table and its content.
+	- Added GetValue method on textbox and text area object
+	- Fixed minor bug in 'aftertext:' option to access html elements.
+	- Modified VerifyText method which now uses findtext method of DOM
+	
+
