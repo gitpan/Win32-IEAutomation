@@ -8,7 +8,7 @@ use Win32::IEAutomation::Table;
 use Win32::IEAutomation::WinClicker;
 
 use vars qw($VERSION $warn);
-$VERSION = '0.2';
+$VERSION = '0.4';
 
 sub new {
 	my $class = shift;
@@ -1116,6 +1116,7 @@ Valid options to use for $how:
 If there are more than one object having same value for the option you are quering, then it returns first object of the collection.
 
 Typical Usage:
+
 	$ie->getTable("id:", "1a");		# access the table whose id attribute is '1a'
 	$ie->getTable("class:", "data")	# access the table whose class attribute is 'data'
 
@@ -1124,6 +1125,7 @@ Typical Usage:
 This will return array containing all table on that page. Each element of an array will be a Win32::IEAutomation::Table object.
 
 Typical Usage:
+
 	my @alltables = $ie->getAllTables;
 
 =item B<Methods supported for table object>
@@ -1135,6 +1137,7 @@ If this method is used without any argument then it returns array of row objects
 then it returns a scalar row object present at specified index. The rows are counted inclusing header row.
 
 Typical Usage:
+
 	my @all_rows = $table_object->rows;  # get collection of all row objects in the table
 	my $third_row = $table_objects->rows(3) # get third row of the table.
 
@@ -1144,6 +1147,7 @@ This method returns a single row object that contains specifed text. If the text
 objetc is returned. This method supports perl pattern matching using 'qr' operator.
 
 Typical Usage:
+
 	my $target_row = $table_object->getRowHavingText("Last Name:"); # access the row which contains text "Last Name:". It will try to match eaxact string.
 	my $target_row = $table_object->getRowHavingText(qr/First Name:/); # access the row by pattern matching text "First Name:"
 
@@ -1154,6 +1158,7 @@ Additionaly it also supports two optional parameters, first parameter is index o
 it returns a scalar cell object using combination of row and column index.
 
 Typical Usage:
+
 	my @allcells = $table_object->tableCells; # get all cell objects in an array
 	my $target_cell = $table_object->tableCells(2, 5); # get cell at second row and fifth column
 
@@ -1167,6 +1172,7 @@ If this method is used without any argument then it returns array of cell object
 then it returns a scalar cell object present at specified index.
 
 Typical Usage:
+
 	my @all_cells = $row_object->cells;  # get collection of all cell objects in that row
 	my $third_cell = $table_objects->cells(3) # get third cell of that row.
 
@@ -1177,6 +1183,7 @@ Typical Usage:
 It returns a text present in that cell.
 
 Typical Usage:
+
 	$text = $cell_object->cellText;	# access the text present in that cell.
 
 In addition to this, all methods listed under LINK METHODS, IMAGE METHODS, BUTTON METHODS, RADIO and CHECKBOX METHODS, SELECT LIST METHODS, 

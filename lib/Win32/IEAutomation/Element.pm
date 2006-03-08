@@ -1,6 +1,8 @@
 package Win32::IEAutomation::Element;
 
 use strict;
+use vars qw($VERSION);
+$VERSION = '0.4';
 
 sub new {
 	my $class = shift;
@@ -18,7 +20,6 @@ sub getElement {
 
 sub getProperty{
 	my ($self, $property) = @_;
-	print "$property\n";
 	return $self->{element}->{$property};
 }
 

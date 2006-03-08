@@ -1,7 +1,8 @@
 package Win32::IEAutomation::Table;
 
 use strict;
-use vars qw($warn);
+use vars qw($VERSION $warn);
+$VERSION = '0.4';
 
 sub new {
 	my $class = shift;
