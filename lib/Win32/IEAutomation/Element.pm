@@ -2,7 +2,7 @@ package Win32::IEAutomation::Element;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.4';
+$VERSION = '0.5';
 
 sub new {
 	my $class = shift;
@@ -123,7 +123,13 @@ sub deSelectAll{
 
 sub SetValue{
 	my ($self, $string) = @_;
-	$self->{element}->{value} = $string;
+	if ($self->getProperty("type") eq "file"){
+		$self->{element}->focus;
+		my $clicker = Win32::IEAutomation::WinClicker->new();
+		$clicker->{autoit}->Send($string);
+	}else{
+		$self->{element}->{value} = $string;
+	}
 }
 
 sub GetValue{

@@ -2,7 +2,7 @@ package Win32::IEAutomation::WinClicker;
 
 use strict;
 use vars qw($VERSION $warn);
-$VERSION = '0.4';
+$VERSION = '0.5';
 
 sub new {
 	my $class = shift;

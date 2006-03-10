@@ -8,7 +8,7 @@ use Win32::IEAutomation::Table;
 use Win32::IEAutomation::WinClicker;
 
 use vars qw($VERSION $warn);
-$VERSION = '0.4';
+$VERSION = '0.5';
 
 sub new {
 	my $class = shift;
@@ -290,7 +290,7 @@ sub getTextBox{
 		$inputs = $agent->Document->all->tags("input");
 	}
 	if ($inputs){
-		$target_field = __getObject($inputs, $how, $what, "text|password");
+		$target_field = __getObject($inputs, $how, $what, "text|password|file");
 	}
 	my $text_object;
 	if ($target_field){
@@ -1032,6 +1032,7 @@ Retrieves the value of the given property for select list object. This makes eas
 =item * getTextBox($how, $what)
 
 This is the method to access input text field on web page. It returns Win32::IEAutomation::Element object containing html input type=text or password element.
+Additionaly this method works for file upload text field also. (i.e. input type=file).
 
 =item * getTextArea($how, $what)
 
@@ -1071,7 +1072,8 @@ Typical Usage:
 
 It will set the value of text field or text area to the string provided.
 
-	$ie->getTextBox('name:', "q")->SetValue("web automation") # it will enter text 'web automation' in the input text filed.
+	$ie->getTextBox('name:', "q")->SetValue("web automation"); # it will enter text 'web automation' in the input text filed.
+	$ie->getTextBox("name:", "importFile")->SetValue("C:\\temp\\somefile"); # to set somefile in file upload text field
 
 =item GetValue()
 

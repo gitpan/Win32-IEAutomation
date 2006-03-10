@@ -17,6 +17,10 @@ Revision history for Perl extension Win32::IEAutomation.
 	- Modified VerifyText method which now uses findtext method of DOM
 
 0.4 Wed Mar 01 15:30:00 2006
-	- Modified VerifyText method which now uses findtext method of DOM	
+	- Modified VerifyText method which now uses findtext method of DOM
+	
+0.5 Fri Mar 10 14:33:00 2006
+	- Added support for file upload input field.
+	
 	
 
